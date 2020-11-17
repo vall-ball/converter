@@ -1,0 +1,282 @@
+type: edu
+custom_name: stage5
+files:
+- name: src/converter/Main.java
+  visible: true
+  text: |
+    package converter;
+
+    public class Main {
+        public static void main(String[] args) {
+            System.out.println("Hello world!");
+        }
+    }
+  learner_created: false
+- name: test/ConverterTest.java
+  visible: false
+  text: |
+    import converter.Main;
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.CheckResult;
+    import org.hyperskill.hstest.testcase.TestCase;
+
+    import java.util.List;
+
+    class Clue {
+        final String input;
+        String answer;
+        final boolean provideAnswer;
+
+        Clue(final String input, final String answer, final boolean provideAnswer) {
+            this.input = input;
+            this.answer = answer;
+            this.provideAnswer = provideAnswer;
+        }
+
+        Clue(final String input, final String answer) {
+            this(input, answer, false);
+        }
+
+        Clue(final String input) {
+            this(input, null, false);
+        }
+    }
+
+
+    public class ConverterTest extends StageTest<Clue> {
+
+        public ConverterTest() {
+            super(Main.class);
+        }
+
+        static TestCase<Clue> testToAnswer(final String input, final String answer, final boolean provideAnswer) {
+            return new TestCase<Clue>()
+                .setAttach(new Clue(input, answer, provideAnswer))
+                .setInput(input);
+        }
+
+        @Override
+        public List<TestCase<Clue>> generate() {
+            return List.of(
+                /* Tests with a hint: */
+                testToAnswer("10\n0.234\n7", "0.14315", true),
+                testToAnswer("10\n10.234\n7", "13.14315", true),
+                testToAnswer("6\n2\n1", "11", true),
+                testToAnswer("35\naf.xy\n17", "148.g88a8", true),
+                testToAnswer("10\n11\n2", "1011", true),
+                testToAnswer("16\naaaaa.0\n24", "22df2.00000", true),
+                testToAnswer("16\n0.cdefb\n24", "0.j78da", true),
+                testToAnswer("16\naaaaa.cdefb\n24", "22df2.j78da", true),
+
+                /* Tests without a hint: */
+                testToAnswer("10\n0.2340\n7", "0.14315", false),
+                testToAnswer("10\n10.2340\n7", "13.14315", false),
+                testToAnswer("6\n2\n1", "11", false),
+                testToAnswer("35\naf.xy0\n17", "148.g88a8", false),
+                testToAnswer("10\n12\n2", "1100", false),
+                testToAnswer("16\naaaaa.00\n24", "22df2.00000", false),
+                testToAnswer("16\n0.cdefb0\n24", "0.j78da", false),
+                testToAnswer("16\naaaaa.cdefb0\n24", "22df2.j78da", false),
+
+                /* Tests from previous stage (with a hint): */
+                testToAnswer("10\n11\n2\n", "1011", true),
+                testToAnswer("1\n11111\n10\n", "5", true),
+                testToAnswer("10\n1000\n36\n", "rs", true),
+                testToAnswer("21\n4242\n6\n", "451552", true),
+                testToAnswer("7\n12\n11\n", "9", true),
+                testToAnswer("5\n300\n10\n", "75", true),
+                testToAnswer("1\n11111\n5\n", "10", true),
+                testToAnswer("10\n4\n1\n", "1111", true),
+
+                /* Tests from previous stage (without a hint): */
+                testToAnswer("10\n12\n2\n", "1100", false),
+                testToAnswer("1\n1111111\n10\n", "7", false),
+                testToAnswer("10\n1001\n36\n", "rt", false),
+                testToAnswer("21\n4243\n6\n", "451553", false),
+                testToAnswer("7\n13\n11\n", "a", false),
+                testToAnswer("5\n301\n10\n", "76", false),
+                testToAnswer("1\n111111\n5\n", "11", false),
+                testToAnswer("10\n5\n1\n", "11111", false)
+            );
+        }
+
+        @Override
+        public CheckResult check(String reply, Clue clue) {
+            final String[] lines = reply
+                .lines()
+                .filter(line -> !line.isEmpty())
+                .toArray(String[]::new);
+
+            if (lines.length == 0) {
+                return new CheckResult(
+                    false,
+                    "Your program doesn't print any line."
+                );
+            }
+
+            String answer = lines[lines.length - 1];
+            answer = answer.replaceAll("[^\\p{Graph}]", "");
+            clue.answer = clue.answer.replaceAll("[^\\p{Graph}]", "");
+
+            answer = removeEndZeros(answer);
+            clue.answer = removeEndZeros(clue.answer);
+
+            if (!answer.equals(clue.answer)) {
+                if (clue.provideAnswer) {
+                    return new CheckResult(
+                        false,
+                        "Your answer is wrong.\n" +
+                            "This is a sample test so we give you a hint.\n" +
+                            "Input: " + clue.input + "\n" +
+                            "Your answer: " + answer + "\n" +
+                            "Correct answer: " + clue.answer
+                    );
+                } else {
+                    return new CheckResult(
+                        false,
+                        "Your answer is wrong."
+                    );
+                }
+            }
+
+            return new CheckResult(true);
+        }
+
+        private String removeEndZeros(String number) {
+            if (!number.contains(".")) {
+                return number;
+            }
+            while (number.endsWith("0")) {
+                number = number.substring(0, number.length() - 1);
+            }
+            if (number.endsWith(".")) {
+                number = number.substring(0, number.length() - 1);
+            }
+            return number;
+        }
+    }
+  learner_created: false
+- name: src/converter/Converter.java
+  visible: true
+  text: |
+    package converter;
+
+    public class Converter {
+
+        public String binaryConvert(long number) {
+            StringBuilder answer = new StringBuilder();
+            while (number != 0) {
+                answer.append(number % 2);
+                number /= 2;
+            }
+            answer.reverse();
+            return "0b" + answer.toString();
+        }
+
+        public String octalConvert(long number) {
+            StringBuilder answer = new StringBuilder();
+
+            while (number != 0) {
+                answer.append(number % 8);
+                number /= 8;
+            }
+            answer.reverse();
+            return "0" + answer.toString();
+        }
+
+        public String hexadecimalConvert(long number) {
+            String[] str = splitString(binaryConvert(number));
+
+            StringBuilder answer = new StringBuilder();
+            answer.append("0x");
+            for (String s : str) {
+                switch (s) {
+                    case "0000":
+                        answer.append("0");
+                        break;
+                    case "0001":
+                        answer.append("1");
+                        break;
+                    case "0010":
+                        answer.append("2");
+                        break;
+                    case "0100":
+                        answer.append("4");
+                        break;
+                    case "0101":
+                        answer.append("5");
+                        break;
+                    case "0110":
+                        answer.append("6");
+                        break;
+                    case "0111":
+                        answer.append("7");
+                        break;
+                    case "1000":
+                        answer.append("8");
+                        break;
+                    case "1001":
+                        answer.append("9");
+                        break;
+                    case "1010":
+                        answer.append("a");
+                        break;
+                    case "1011":
+                        answer.append("b");
+                        break;
+                    case "1100":
+                        answer.append("c");
+                        break;
+                    case "1101":
+                        answer.append("d");
+                        break;
+                    case "1110":
+                        answer.append("e");
+                        break;
+                    case "1111":
+                        answer.append("f");
+                        break;
+
+                }
+            }
+            return answer.toString();
+        }
+
+        private String[] splitString(String str) {
+            String s = str.substring(2);
+            //System.out.println("str = " + s);
+            int rest = s.length() % 4;
+            int appendix;
+            if (rest == 0) {
+                appendix = 0;
+            } else {
+                appendix = 1;
+            }
+
+            String[] answer = new String[s.length() / 4 + appendix];
+            if (rest == 1) {
+                answer[0] = "000" + s.substring(0, 1);
+            } else if (rest == 2) {
+                answer[0] = "00" + s.substring(0, 2);
+            } else if (rest == 3) {
+                answer[0] = "0" + s.substring(0, 3);
+            } else {
+                answer[0] = s.substring(0, 4);
+            }
+            if (answer.length > 1) {
+                for (int i = 1; i < answer.length; i++) {
+                    answer[i] = s.substring((i - 1) * 4 + rest, i * 4 + rest);
+                    //System.out.println("answer[i]=" + answer[i]);
+                }
+            }
+            return answer;
+        }
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/41/stages/218/implement
+status: Solved
+feedback:
+  message: Congratulations! Continue on <a href="https://hyperskill.org/projects/41/stages/218/implement">JetBrains
+    Academy</a>
+  time: Fri, 21 Aug 2020 05:24:31 UTC
+record: 5
